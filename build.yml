@@ -1,0 +1,24 @@
+name: Build Nintendo 3DS
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkitarm:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: make
+
+      - name: Upload 3DSX
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashen-deck-3dsx
+          path: "*.3dsx"
