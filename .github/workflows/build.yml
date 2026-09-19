@@ -14,6 +14,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install 3DS development libraries
+        run: pacman -S --noconfirm 3ds-dev
+
       - name: Build
         run: make
 
