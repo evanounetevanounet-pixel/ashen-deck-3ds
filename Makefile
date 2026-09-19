@@ -1,3 +1,13 @@
+.SUFFIXES:
+
+ifeq ($(strip $(DEVKITARM)),)
+$(error "Please set DEVKITARM in your environment")
+endif
+
+TOPDIR ?= $(CURDIR)
+
+include $(DEVKITARM)/3ds_rules
+
 TARGET := 3ds_card_roguelike
 
 BUILD := build
@@ -14,4 +24,47 @@ ASFLAGS := -g $(ARCH)
 
 LIBS := -lctru -lm
 
-include $(DEVKITARM)/3ds_rules
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+
+export OUTPUT := $(CURDIR)/$(TARGET)
+export TOPDIR := $(CURDIR)
+export VPATH := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir))
+export DEPSDIR := $(CURDIR)/$(BUILD)
+
+CFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+OFILES_SOURCES := $(CFILES:.c=.o)
+
+export OFILES := $(OFILES_SOURCES)
+
+export INCLUDE := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
+                  -I$(CURDIR)/$(BUILD)
+
+export LIBPATHS :=
+
+.PHONY: all clean
+
+all: $(BUILD)
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+
+$(BUILD):
+	@mkdir -p $@
+
+clean:
+	@echo clean ...
+	@rm -fr $(BUILD) $(TARGET).3dsx $(TARGET).elf
+
+else
+
+$(OUTPUT).3dsx: $(OUTPUT).elf
+	@echo "Creating $@"
+	@3dsxtool $< $@ --smdh=$(OUTPUT).smdh
+
+$(OUTPUT).elf: $(OFILES)
+	@echo "Linking $@"
+	@$(LD) $(LDFLAGS) $(ARCH) -specs=3dsx.specs -o $@ $(OFILES) $(LIBPATHS) $(LIBS)
+
+%.o: %.c
+	@echo "Compiling $<"
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+endif
